@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>'La Pieuvre' - Caveo</title>
+	<link rel="stylesheet" href="reset.css" media="all" type="text/css" />
+	<style>
+		@import url(http://fonts.googleapis.com/css?family=EB+Garamond);
+		* {
+		  margin: 0;
+		  padding: 0;
+		}
+		body {
+		 	font-family: 'EB Garamond', serif;
+			color:#333;
+			position:absolute;
+			width:100%;
+			height:100%;
+		}
+		#canvas { /*Set the position of the canvas. The size is given in the script.*/
+			display: block;
+			position:absolute;
+			left: 50%; /* The canvas is horizontally set at the middle. */
+			top:33%; /* The canvas is vertically set at the first-thirds of the page. It's nicer. */
+			margin: -62.5px auto auto -150px; /* Correctives to get the right center. */
+			/* 62.5px is half the canvas' height and 150px half the canvas' width. */
+		}
+		#oo { /* The eyes are made of two letters sized here.*/
+			height:auto;
+			width: 300px;
+			text-align: center;
+			left: 50%; /* The background is layered with the canvas. */
+			top:33%;
+			margin: -62.5px auto auto -150px;
+			padding-top:30px;
+			font-size:90px;
+			letter-spacing: 0.05em;
+			color:#d94f2f;
+			border : 3px solid #d94f2f;
+			border-radius: 15px;
+			position:absolute;
+		}
+		/* Titles above the octopus.*/
+		h1 a, h2 {
+			font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+			color:#d94f2f;
+			text-align:center;
+		}
+		h1 {
+			font-size:24px;
+		}
+		h2 {
+			font-size:22px;
+			font-style: italic;
+			margin-top:20px;
+		}
+		h1 a {
+			text-decoration: none;
+		}
+		h1 a:hover {
+			color:#679403;
+		}
+	</style>
+</head>
+
+<body>
+	<canvas id="canvas"></canvas>
+	<div id="oo" style="background:url(caveo_veille_picture.png) no-repeat;">
+		<p>oo</p>
+		<h2>"La Pieuvre"</h2>
+		<h1>
+			<a href="http://caveo.alwaysdata.net/contact.html">CAVEO</a>
+		</h1>
+	</div>
+	<script>
+	(function() {
+	//First, tell the browser that we want to perform an animation.
+	//The browser will then call a specified function to update an animation.
+	//"requestAnimationFrame" provides a native API for running any type of animation in the browser, be it using DOM elements, CSS, canvas, WebGL or anything else.
+	window.requestAnimFrame = (function() {
+		return window.requestAnimationFrame || 
+			   window.webkitRequestAnimationFrame || 
+			   window.mozRequestAnimationFrame || 
+			   window.oRequestAnimationFrame || 
+			   window.msRequestAnimationFrame ||
+	  		   function(callback) {
+	  		   		//seTimeout to 1s (1000ms) and 60fps : it is a maximum since
+	  		   		//most screens have a refresh rate of 60Hz. 
+		  	   		window.setTimeout(callback, 1000 / 60);
+				};
+	})();
+	//Before declaring any canvas, it is useful to set a blueprint for the eyes.
+	//We can do this by defining an object-pattern, and using its property ".prototype" to define the properties that the inherited objects will share.
+	//This way, both eyes will be defined similarly.
+	//Thus, define a functional object called 'Eye' 
+	//with its 3 references : position, center, translation.
+	Eye = function(pos) {
+	 	this.pos = {
+			x : pos.x,
+			y : pos.y
+		};
+		this.center = {
+			x : pos.x,
+			y : pos.y
+		};
+		this.translation = {
+			//When the mouse is moved, update() is called on both eyes to calculate the new position. Translation is then re-written (and so the new center) : this way, during the re-calculation of the pos, the center of the oval shape is never too far from the center of the eye.
+			//Place the abscissa of the center in relation to the center of the window.
+			//Add the abscissa of the new recalculated center. 
+			// cf css above
+			x : (window.innerWidth / 2 - canvas.width / 2) + this.center.x,
+			//Place the ordinate of the center in relation to the first-third of the window.
+			//Add the ordinate of the new recalculated center. 
+			//cf css above
+			y : (window.innerHeight / 3 - canvas.height / 2) + this.center.y
+	  	};
+	}
+	//This first functional object can be extended (with the property ".prototype") or taken as a pattern.
+	//We choose first to extend the base object in order to draw it as a circle to shape the eyes' iris.
+	Eye.prototype.draw = function() {
+	  	ctx.beginPath(); //Beginning of the path, meaning that what follows draws something.
+		ctx.arc(this.pos.x, this.pos.y, 9, 0, Math.PI * 2);
+		// arc (abscissa of the center, ordinate of the center, radius, startAngle, endAngle)
+		//'Math.PI * 2' means a complete circle
+		ctx.fillStyle = '#333'; //property of the context for the color style
+		//no need for setting anything else such as the thickness of the line (lineWidth)
+		//or the shape of the line ending (lineCap)
+		ctx.fill(); //method for filling the canvas according to the instructions
+		ctx.closePath(); //End of the path (optional)
+	}
+	//Update the object according to the moves of the mouse.
+	Eye.prototype.update = function() {
+		var deltaX = mouse.x - this.translation.x; //Vector on x : Mobility of the iris on the axis x.
+		var deltaY = mouse.y - this.translation.y; //Vector on y : Mobility of the iris on the axis y.
+		var angleRad = Math.atan2(deltaY, deltaX); //Get the value of the angle between 0, x a,d y in radian. (the angle between the two vectors deltaX and deltaY)
+		//The complete eyes have two oval shapes (O and O).
+		//The iris we draw can move in a finer oval shape that fits in a rectangle of 10x6
+		//The new coordinates of the mouse (mouse.x and mouse.y) move the oval shape giving a new center to calculate
+		var newPosX = this.center.x + 6 * Math.cos(angleRad); //Calculation of the coordinate x of the new center, added to the former one. 
+		var newPosY = this.center.y + 10 * Math.sin(angleRad); //Calculation of the coordinate y of the new center, added to the former one. 
+		this.pos.x = this.pos.x + (newPosX - this.pos.x) / 5; //Calculation of the new position of the eye, put to scale.
+		this.pos.y = this.pos.y + (newPosY - this.pos.y) / 5; //idem
+	}
+	//The blueprint for the eyes is set. We have now to declare the canvas, its rendering context and its size, and then create the eyes inherited from the pattern we made.
+	//It could be useful here to declare an "init" function which contains the variables for the process.
+	//All the variables are declared inside this local scope, in order not to clutter up all the code, minimizing the risk for conflicts with other scripts.
+	//The "init" function is then run at the end of the script.
+	var init = function() {
+	  	canvas = document.getElementById('canvas'); //First, get the canvas object.
+		ctx = canvas.getContext('2d'); //Then, get the rendering context in order to handle it.
+		canvas.width = WIDTH = 300; //Set the width of the canvas, and save it in a variable in order to use it easily later.
+		canvas.height = HEIGHT = 125; //Set the height as well. 
+		//At this point, the canvas is set. The following lines set what is drawn.
+		leftEye = new Eye({ //Create a new object inherited from the object 'Eye' : this one is for the left eye.
+			x : WIDTH / 2 - 23, //The abscissa is aligned in relation to the center of the canvas (WIDTH / 2 - 25) with some correctives to fit the image shape.
+			y : 85 //The ordinate is set according to the background image.
+		});
+		rightEye = new Eye({ //Idem for the right eye.
+			x : WIDTH / 2 + 27, 
+			y : 85
+		});
+		mouse = { //Set the coordinates of the mouse to 0, they'll change as the mouse moves thanks to the "bindEventHandlers" funtion.
+			x : 0,
+			y : 0
+		};
+		bindEventHandlers(); //Change the coordinates of the mouse as it moves.
+		draw(); //Draw the eyes with updates.
+	}
+
+	var bindEventHandlers = function() {
+		document.onmousemove = function(e) {
+			mouse.x = e.pageX; //The mouse position relative to the left edge of the document.
+			mouse.y = e.pageY; //The mouse position relative to the top edge of the document.
+		}
+	}
+
+	var draw = function() {
+		ctx.clearRect(0, 0, WIDTH, HEIGHT); //Erase all the pixels drawn in the defined rectangular space (startx, starty, width, height)
+		//Here, the canvas is constantly erased and re-drawn to create the dynamism of the eyes.
+		leftEye.update(); //Apply the update for the left eye.
+		rightEye.update(); //Apply the update for the right eye.
+		leftEye.draw(); //Draw the left eye.
+		rightEye.draw(); //Draw the right eye.
+		requestAnimFrame(draw);
+	}
+
+	init(); //run
+
+	})();
+
+	</script>
+</body>
+</html>
